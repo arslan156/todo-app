@@ -46,11 +46,32 @@ const LOADER_METHODS = ["post", "put", "patch", "delete"];
       return response;
     },
     (error) => {
-      if (error.config?.showsGlobalLoader) stopLoading();
+      if (error.config?.showsGlobalLoader) {
+        stopLoading();
+        showApiError(api, error);
+      }
       return Promise.reject(error);
     }
   );
 });
+
+// Pop up an error toast when an add / update / delete request fails.
+// Auth forms show their own errors, and 401s redirect to sign in instead.
+function showApiError(api, error) {
+  if (api === authApi) return;
+  if (axios.isCancel(error)) return;
+  if (error.response?.status === 401) return;
+
+  window.dispatchEvent(
+    new CustomEvent("todo:notification", {
+      detail: {
+        variant: "error",
+        title: "Something went wrong",
+        message: apiErrorMessage(error, "Request failed. Please try again."),
+      },
+    })
+  );
+}
 
 // When a session expires mid-use, send the person back to sign in.
 [taskApi, notesApi, chatApi, mailboxApi].forEach((api) =>
